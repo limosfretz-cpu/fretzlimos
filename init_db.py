@@ -1,37 +1,49 @@
 import sqlite3
 
-conn = sqlite3.connect('students.db')
+DATABASE = "students.db"
+
+conn = sqlite3.connect(DATABASE)
 cursor = conn.cursor()
 
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS students (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id TEXT NOT NULL,
-    name TEXT NOT NULL,
-    program TEXT NOT NULL,
-    year INTEGER NOT NULL,
-    section TEXT NOT NULL
-)
-''')
+# Create students table if it does not exist
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS students (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        program TEXT NOT NULL,
+        year INTEGER NOT NULL,
+        section TEXT NOT NULL,
+        source TEXT DEFAULT 'Local'
+    )
+""")
 
-# Remove previous sample records
-cursor.execute("DELETE FROM students")
-
-# Five sample student records
-students = [
-    ('26-01204', 'Rea Fe Sobejano', 'BSOA', 1, 'A'),
-    ('24-00137', 'Jay Cris Encajonado', 'BSIT', 3, 'B'),
-    ('24-00138', 'Jarell Kris Magarso', 'BSIT', 3, 'B'),
-    ('25-00421', 'Maria Santos', 'BSIT', 2, 'A'),
-    ('26-00815', 'Daniel Reyes', 'BSCS', 1, 'C')
+# Check existing columns
+columns = [
+    row[1]
+    for row in cursor.execute(
+        "PRAGMA table_info(students)"
+    ).fetchall()
 ]
 
-cursor.executemany('''
-INSERT INTO students (student_id, name, program, year, section)
-VALUES (?, ?, ?, ?, ?)
-''', students)
+# Add source column if missing
+if "source" not in columns:
+    cursor.execute("""
+        ALTER TABLE students
+        ADD COLUMN source TEXT DEFAULT 'Local'
+    """)
+
+# Set default source for existing records
+cursor.execute("""
+    UPDATE students
+    SET source = 'Local'
+    WHERE source IS NULL OR source = ''
+""")
 
 conn.commit()
 conn.close()
 
-print("Database created successfully.")
+print("Database initialized successfully!")
+print("Students table is ready.")
+print("Source column is available.")
+print("Existing records have been preserved.")
