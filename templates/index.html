@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -125,6 +124,23 @@
             margin-top: 20px;
         }
 
+        #studentList,
+        #studentByIdResult {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #cccccc;
+            border-radius: 8px;
+            background-color: #f9fafb;
+        }
+
+        #studentList p,
+        #studentByIdResult p {
+            padding: 10px;
+            margin: 5px 0;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+
         hr {
             border: none;
             border-top: 1px solid #ddd;
@@ -228,6 +244,49 @@
             <div id="eventsResult">
                 <p>Click the button to view campus events.</p>
             </div>
+
+        </div>
+
+
+        <hr>
+
+
+        <!-- STUDENTS FROM DATABASE -->
+        <div class="section">
+
+            <h2>Students from Database</h2>
+
+            <button onclick="loadStudents()">
+                Load Students
+            </button>
+
+            <div id="studentList"></div>
+
+        </div>
+
+
+        <hr>
+
+
+        <!-- SEARCH STUDENT BY DATABASE ID -->
+        <div class="section">
+
+            <h2>Search Student by Database ID</h2>
+
+            <p>Enter the student's database ID to retrieve their information.</p>
+
+            <input
+                type="number"
+                id="studentIdInput"
+                placeholder="Enter database ID (Example: 1)"
+                min="1"
+            >
+
+            <button onclick="loadStudentById()">
+                Search Student
+            </button>
+
+            <div id="studentByIdResult"></div>
 
         </div>
 
@@ -373,6 +432,93 @@
                     eventsResult.innerHTML =
                         '<p>Unable to retrieve campus events. Please try again.</p>';
 
+                });
+        }
+
+
+        // LOAD STUDENTS FROM DATABASE
+        function loadStudents() {
+
+            const studentList = document.getElementById('studentList');
+
+            studentList.innerHTML = '<p>Loading student records...</p>';
+
+            fetch('/students')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to retrieve student records.');
+                    }
+
+                    return response.json();
+                })
+                .then(data => {
+
+                    let output = '';
+
+                    if (data.length === 0) {
+                        studentList.innerHTML = '<p>No student records found.</p>';
+                        return;
+                    }
+
+                    data.forEach(student => {
+                        output +=
+                            '<p>' +
+                            '<b>Database ID: ' + student.id + '</b> | ' +
+                            '<b>' + student.student_id + '</b> - ' +
+                            student.name + ' | ' +
+                            student.program + ' | Year ' +
+                            student.year + ' | Section ' +
+                            student.section +
+                            '</p>';
+                    });
+
+                    studentList.innerHTML = output;
+                })
+                .catch(error => {
+                    studentList.innerHTML =
+                        '<p>Unable to retrieve student records.</p>';
+                });
+        }
+
+
+        // LOAD STUDENT BY DATABASE ID
+        function loadStudentById() {
+
+            const id = document.getElementById('studentIdInput').value.trim();
+            const result = document.getElementById('studentByIdResult');
+
+            if (id === '' || !Number.isInteger(Number(id)) || Number(id) < 1) {
+                result.innerHTML = '<p>Please enter a valid database ID.</p>';
+                return;
+            }
+
+            result.innerHTML = '<p>Searching for student...</p>';
+
+            fetch('/students/' + encodeURIComponent(id))
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            throw new Error('Student not found.');
+                        }
+
+                        throw new Error('Unable to retrieve student information.');
+                    }
+
+                    return response.json();
+                })
+                .then(student => {
+
+                    result.innerHTML =
+                        '<p><b>Database ID:</b> ' + student.id + '</p>' +
+                        '<p><b>Student ID:</b> ' + student.student_id + '</p>' +
+                        '<p><b>Name:</b> ' + student.name + '</p>' +
+                        '<p><b>Program:</b> ' + student.program + '</p>' +
+                        '<p><b>Year:</b> ' + student.year + '</p>' +
+                        '<p><b>Section:</b> ' + student.section + '</p>';
+
+                })
+                .catch(error => {
+                    result.innerHTML = '<p>' + error.message + '</p>';
                 });
         }
 

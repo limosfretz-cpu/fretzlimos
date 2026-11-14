@@ -1,14 +1,23 @@
-
+import sqlite3
 from flask import Flask, jsonify, request, render_template
 
 app = Flask(__name__)
 
 
+# DATABASE CONNECTION
+def get_db_connection():
+    conn = sqlite3.connect('students.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+# HOME PAGE
 @app.route('/')
 def home():
     return render_template('index.html')
 
 
+# EXISTING STUDENT ENDPOINT
 @app.route('/student')
 def get_student():
     return jsonify({
@@ -20,6 +29,7 @@ def get_student():
     })
 
 
+# EXISTING GREETING ENDPOINT
 @app.route('/hello')
 def say_hello():
     name = request.args.get('name', 'Student')
@@ -28,7 +38,41 @@ def say_hello():
     })
 
 
-# NEW ENDPOINT 1: Campus Events
+# DATABASE ENDPOINT: ALL STUDENTS
+@app.route('/students')
+def get_students():
+    conn = get_db_connection()
+
+    students = conn.execute(
+        'SELECT * FROM students'
+    ).fetchall()
+
+    conn.close()
+
+    return jsonify([dict(student) for student in students])
+
+
+# DATABASE ENDPOINT: STUDENT BY DATABASE ID
+@app.route('/students/<int:id>')
+def get_student_by_id(id):
+    conn = get_db_connection()
+
+    student = conn.execute(
+        'SELECT * FROM students WHERE id = ?',
+        (id,)
+    ).fetchone()
+
+    conn.close()
+
+    if student is None:
+        return jsonify({
+            "error": "Student not found"
+        }), 404
+
+    return jsonify(dict(student))
+
+
+# CUSTOM ENDPOINT 1: CAMPUS EVENTS
 @app.route('/campus-events')
 def get_campus_events():
     return jsonify({
@@ -58,7 +102,7 @@ def get_campus_events():
     })
 
 
-# NEW ENDPOINT 2: Course Information
+# CUSTOM ENDPOINT 2: COURSE INFORMATION
 @app.route('/course-info/<course_code>')
 def get_course_info(course_code):
 
